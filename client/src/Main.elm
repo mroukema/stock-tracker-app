@@ -38,13 +38,13 @@ main =
 -- Model
 
 
-type Msg
-    = NoOp
-    | LoadStockData (Result Http.Error StockList)
-    | RefreshData
-    | PostNewTickerRequest String
-    | UpdateAddTickerContent String
-    | DeleteTickerRequest String
+type alias Model =
+    { errorMessage : Maybe Http.Error
+    , symbolInputText : String
+    , refreshing : Bool
+    , pending : Maybe (List String)
+    , stockData : StockList
+    }
 
 
 type alias StockEntry =
@@ -60,13 +60,24 @@ type alias StockList =
     List StockEntry
 
 
-type alias Model =
-    { errorMessage : Maybe Http.Error
-    , symbolInputText : String
-    , refreshing : Bool
-    , pending : Maybe (List String)
-    , stockData : StockList
+type alias BackendError =
+    { statusCode : Int
+    , message : String
     }
+
+
+type Msg
+    = NoOp
+    | LoadStockData (Result Http.Error StockList)
+    | RefreshData
+    | PostNewTickerRequest String
+    | UpdateAddTickerContent String
+    | DeleteTickerRequest String
+
+
+init : Maybe StockList -> ( Model, Cmd Msg )
+init flags =
+    ( initialModel, sendStockDataRequest )
 
 
 initialModel : Model
@@ -79,19 +90,53 @@ initialModel =
     }
 
 
-init : Maybe StockList -> ( Model, Cmd Msg )
-init flags =
-    ( initialModel, sendStockDataRequest )
-
-
-type alias BackendError =
-    { statusCode : Int
-    , message : String
-    }
-
-
 
 -- Update
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+        LoadStockData result ->
+            case result of
+                Err value ->
+                    ( { model
+                        | refreshing = False
+                        , pending = Nothing
+                        , errorMessage = Just value
+                      }
+                    , Cmd.none
+                    )
+
+                Ok data ->
+                    ( { model
+                        | stockData = data
+                        , refreshing = False
+                        , pending = Nothing
+                        , errorMessage = Nothing
+                      }
+                    , Cmd.none
+                    )
+
+        RefreshData ->
+            ( { model | refreshing = True }, sendStockDataRequest )
+
+        PostNewTickerRequest tickerSymbol ->
+            ( { model
+                | pending = Just <| tickerSymbol :: []
+                , symbolInputText = ""
+              }
+            , sendNewTickerRequest tickerSymbol
+            )
+
+        UpdateAddTickerContent value ->
+            ( { model | symbolInputText = value }, Cmd.none )
+
+        DeleteTickerRequest symbolToRemove ->
+            ( model, sendDeleteTickerRequest symbolToRemove )
 
 
 decodeError : Json.Decoder BackendError
@@ -118,12 +163,17 @@ decodeStockList =
 
 getStockData : Http.Request StockList
 getStockData =
-    Http.get "http://127.0.0.1:8787/stockList" decodeStockList
+    Http.get
+        "http://127.0.0.1:8787/stockList"
+        decodeStockList
 
 
 postNewTickerRequest : String -> Http.Request StockList
 postNewTickerRequest message =
-    Http.post "http://127.0.0.1:8787/newTicker" (Http.jsonBody <| object [ ( "symbol", string message ) ]) decodeStockList
+    Http.post
+        "http://127.0.0.1:8787/newTicker"
+        (Http.jsonBody <| object [ ( "symbol", string message ) ])
+        decodeStockList
 
 
 deleteTickerRequest : String -> Http.Request StockList
@@ -166,51 +216,6 @@ accendingOnColumn column a b =
     compare (column a) (column b)
 
 
-onEnter : Msg -> Attribute Msg
-onEnter msg =
-    let
-        isEnter code =
-            if code == 13 then
-                Json.succeed msg
-
-            else
-                Json.fail "not ENTER"
-    in
-    on "keydown" (Json.andThen isEnter keyCode)
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
-        LoadStockData result ->
-            case result of
-                Err value ->
-                    ( { model | refreshing = False, pending = Nothing, errorMessage = Just value }, Cmd.none )
-
-                Ok data ->
-                    ( { model | stockData = data, refreshing = False, pending = Nothing, errorMessage = Nothing }, Cmd.none )
-
-        RefreshData ->
-            ( { model | refreshing = True }, sendStockDataRequest )
-
-        PostNewTickerRequest tickerSymbol ->
-            ( { model
-                | pending = Just <| tickerSymbol :: []
-                , symbolInputText = ""
-              }
-            , sendNewTickerRequest tickerSymbol
-            )
-
-        UpdateAddTickerContent value ->
-            ( { model | symbolInputText = value }, Cmd.none )
-
-        DeleteTickerRequest symbolToRemove ->
-            ( model, sendDeleteTickerRequest symbolToRemove )
-
-
 
 -- View
 
@@ -237,7 +242,11 @@ view model =
     div []
         [ errorDiv
         , tickerInputField model.symbolInputText
-        , button [ onClick <| PostNewTickerRequest model.symbolInputText ] [ text "SUBMIT" ]
+        , button
+            [ onClick <|
+                PostNewTickerRequest model.symbolInputText
+            ]
+            [ text "SUBMIT" ]
         , button [ onClick RefreshData ] [ text refreshButtonText ]
         , table []
             (stockTableHeader model.stockData
@@ -304,6 +313,19 @@ tickerInputField textData =
         []
 
 
+onEnter : Msg -> Attribute Msg
+onEnter msg =
+    let
+        isEnter code =
+            if code == 13 then
+                Json.succeed msg
+
+            else
+                Json.fail "not ENTER"
+    in
+    on "keydown" (Json.andThen isEnter keyCode)
+
+
 errorMessageDisplay : Http.Error -> Html msg
 errorMessageDisplay error =
     case error of
@@ -314,15 +336,32 @@ errorMessageDisplay error =
             div [] [ text "Request timed out" ]
 
         Http.BadPayload message response ->
-            div [] [ text <| "Request returned Successfully but got unexpected payload: " ++ message ]
+            div []
+                [ text <|
+                    "Request returned Successfully but got unexpected payload: "
+                        ++ message
+                ]
 
         Http.NetworkError ->
             div [] [ text "Request failed due to network error" ]
 
         Http.BadStatus response ->
             div []
-                [ div [] [ text <| "Error: " ++ String.fromInt response.status.code ++ " " ++ response.status.message ]
-                , div [] [ text <| ("Message: '" ++ extractErrorMessageFromBody response.body) ++ "'" ]
+                [ div []
+                    [ text <|
+                        "Error: "
+                            ++ String.fromInt response.status.code
+                            ++ " "
+                            ++ response.status.message
+                    ]
+                , div []
+                    [ text <|
+                        ("Message: "
+                            ++ "'"
+                            ++ extractErrorMessageFromBody response.body
+                        )
+                            ++ "'"
+                    ]
                 ]
 
 
