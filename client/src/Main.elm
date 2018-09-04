@@ -201,7 +201,7 @@ sendStockDataRequest =
 
 sendNewTickerRequest : String -> Cmd Msg
 sendNewTickerRequest message =
-    Http.send LoadStockData (postNewTickerRequest message)
+    Http.send LoadStockData <| postNewTickerRequest message
 
 
 
@@ -252,7 +252,7 @@ view model =
             (stockTableHeader model.stockData
                 :: List.concat
                     [ pendingStockEntries model.pending
-                    , List.map stockEntryRow model.stockData
+                    , List.map stockEntryRow <| List.sortBy .symbol model.stockData
                     ]
             )
         ]
