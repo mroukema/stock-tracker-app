@@ -23,7 +23,7 @@ function getOnListeningHandler(server, resolve) {
         try {
             let addr = server.address();
             let bind = _.isString(addr) ? ('pipe ' + addr) : ('port ' + addr.port);
-            console.log('listening on ' + bind);
+            console.log('==> Listening on ' + bind);
         } finally {
             resolve();
         }
@@ -93,17 +93,23 @@ async function createAndStartServer(app, options) {
 }
 
 module.exports = (async function serverInit(app, options = {}) {
+    console.group('Start www.js : create server and listen on port');
+    if (!_.isEmpty(options)) {
+        console.log('Custom options specified:')
+        console.log(options);
+    }
     //Merge defaults with provided options
     options = {
         ...defaultWebserverConfig,
         ...options
     };
     try {
-        console.log('Start www.js : create server and listen on port');
         await createAndStartServer(app, options);
         console.log('Finish www.js : server is created and listening');
     } catch (error) {
         console.error('Error in www.js init')
         throw error;
+    } finally {
+        console.groupEnd();
     }
 });

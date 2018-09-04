@@ -16,6 +16,9 @@ const constants = {
         currentValue: 'Current Value',
         purchaseTimeValue: 'Value at Purchase Time'
     },
+    loggingOptions: {
+        type: 'condensed'
+    },
     defaultWebserverConfig: {
         port,
         bindAddress: undefined

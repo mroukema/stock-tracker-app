@@ -5,6 +5,7 @@ const www = require(paths.src.www);
 
 async function startStockApp(options = { webserverOptions:{}, applicationOptions: {}}) {
     try {
+        console.group('Begin Stock App Startup');
         if (!_.isObject(options)) {
             throw new Error('Options parameter must be an object');
         }
@@ -14,6 +15,8 @@ async function startStockApp(options = { webserverOptions:{}, applicationOptions
     } catch (error) {
         console.error('Error in Stock App Startup');
         throw error;
+    } finally {
+        console.groupEnd();
     }
 }
 

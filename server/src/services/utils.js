@@ -1,5 +1,7 @@
 const _ = require('lodash');
-const {columnNames} = require(`${__dirname}/../conf/constants`)
+const uuid = require('uuid/v1');
+
+const {paths, columnNames, loggingOptions} = require(`${__dirname}/../conf/constants`);
 
 function convertToFloat(value) {
     try {
@@ -36,8 +38,25 @@ function pushAndReturn(array, newValue) {
     return array;
 }
 
+function logAndTagIncomingRequests(req, res, next) {
+    function endGroup() {
+        res.removeListener('finish', endGroup);
+        res.removeListener('close', endGroup);
+        console.groupEnd();
+    }
+    res.on('finish', endGroup);
+    res.on('close', endGroup)
+
+    req.requestId = uuid();
+    console.group(`Incoming Request  ${req.method} ${req.originalUrl}`)
+    console.log(`Incoming Request: ${req.method} ${req.originalUrl} ` +
+        `Req ID: ${req.requestId}`);
+    next();
+}
+
 module.exports = {
     pushAndReturn,
     getSymbolList,
-    convertToFrontendStockDataStructure
+    convertToFrontendStockDataStructure,
+    logAndTagIncomingRequests
 }
