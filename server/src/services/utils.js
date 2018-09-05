@@ -21,7 +21,11 @@ function convertToFrontendStockDataStructure(stockData) {
         price: convertToFloat(entry[columnNames.currentPrice]),
         average: convertToFloat(entry[columnNames.avgPrice]),
         delta: convertToFloat(entry[columnNames.avgCurrentDelta]),
-        deltaPercent: convertToFloat(entry[columnNames.avgCurrentDeltaPercent])
+        deltaPercent: convertToFloat(entry[columnNames.avgCurrentDeltaPercent]),
+        purchasedQuantity: convertToFloat(entry[columnNames.quantity]),
+        purchasePrice: convertToFloat(entry[columnNames.purchasePrice]),
+        purchasedValue: convertToFloat(entry[columnNames.purchasedValue]),
+        currentValue:  convertToFloat(entry[columnNames.currentValue])
     }));
 }
 

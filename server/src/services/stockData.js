@@ -49,57 +49,6 @@ function fillCurrentPrices(quotes, stockData = _stockData) {
     });
 }
 
-function findInDateRange(startDate, endDate, rangeData, stockData = _stockData) {
-    if(!(startDate instanceof Date)) {
-        startDate = new Date(startDate);
-    }
-    if(!(endDate instanceof Date)) {
-        endDate = new Date(endDate);
-    }
-
-    if(endDate.valueOf() < startDate.valueOf()) {
-        let temp = endDate;
-        endDate = startDate;
-        startDate = temp;
-    }
-
-    let entriesInRange = _.filter(rangeData, (data) => {
-        let entryDate = new Date(data.date);
-        return (entryDate.valueOf() >= startDate.valueOf()) &&
-            (entryDate.valueOf() <= endDate.valueOf());
-    });
-
-    return entriesInRange;
-}
-
-function fillAvgPriceForRange(charts, stockData = _stockData) {
-    _stockData = _.map(stockData, (value, key) => {
-        let symbol = value[columnNames.symbol];
-        let rangeData = _.at(charts, `${symbol}.chart`);
-
-        let currentAveragePrice = value[columnNames.avgPrice];
-        if(!_.isUndefined(currentAveragePrice && currentAveragePrice != 0)) {
-            return value;
-        } else if (_.isUndefined(rangeData) || _.isEmpty(rangeData)) {
-            console.log('No range data');
-            return value;
-        }
-
-        rangeData = rangeData[0];
-        let entriesInRange = findInDateRange(
-            new Date('July 30 2018'),
-            new Date('Aug 10 2018'),
-            rangeData,
-            stockData
-        );
-        let averagePrice = averageClosePrice(entriesInRange);
-        if(_.isNumber(averagePrice)) {
-            value[columnNames.avgPrice] = averagePrice.toFixed(2);
-        }
-        return value;
-    });
-}
-
 function promiseStringify(stockData, options, callback) {
     return new Promise((resolve, reject) => {
         try {
@@ -170,7 +119,6 @@ let def = {
     },
     initStockData,
     fillCurrentPrices,
-    fillAvgPriceForRange,
     writeStockDataToFile,
     addNewTicker,
     deleteTicker

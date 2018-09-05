@@ -11,10 +11,10 @@ const constants = {
         avgPrice: 'Avg Price (July 30 2018 - Aug 10 2018)',
         avgCurrentDelta: 'Delta #',
         avgCurrentDeltaPercent: 'Delta %',
-        buyPrice: 'Buy Price',
+        purchasePrice: 'Buy Price',
         quantity: 'Qty',
         currentValue: 'Current Value',
-        purchaseTimeValue: 'Value at Purchase Time'
+        purchasedValue: 'Value at Purchase Time'
     },
     loggingOptions: {
         type: 'condensed'

@@ -20,6 +20,7 @@ import Html.Keyed as Keyed
 import Html.Lazy exposing (lazy, lazy2)
 import Http
 import Json.Decode as Json
+import Json.Decode.Pipeline as Pipeline exposing (optional, required)
 import Json.Encode exposing (encode, object, string)
 import Task
 
@@ -53,6 +54,10 @@ type alias StockEntry =
     , average : Maybe Float
     , delta : Maybe Float
     , deltaPercent : Maybe Float
+    , purchasedQuantity : Maybe Float
+    , purchasePrice : Maybe Float
+    , purchasedValue : Maybe Float
+    , currentValue : Maybe Float
     }
 
 
@@ -86,7 +91,7 @@ initialModel =
     , symbolInputText = ""
     , refreshing = False
     , pending = Just []
-    , stockData = [ StockEntry "APPN" (Just 0.0) (Just 0.0) Nothing Nothing ]
+    , stockData = [ StockEntry "APPN" (Just 0.0) (Just 0.0) Nothing Nothing Nothing Nothing Nothing Nothing ]
     }
 
 
@@ -148,12 +153,16 @@ decodeError =
 
 decodeStockData : Json.Decoder StockEntry
 decodeStockData =
-    Json.map5 StockEntry
-        (Json.field "symbol" Json.string)
-        (Json.maybe <| Json.field "price" Json.float)
-        (Json.maybe <| Json.field "average" Json.float)
-        (Json.maybe <| Json.field "delta" Json.float)
-        (Json.maybe <| Json.field "deltaPercent" Json.float)
+    Json.succeed StockEntry
+        |> required "symbol" Json.string
+        |> optional "price" (Json.maybe Json.float) Nothing
+        |> optional "average" (Json.maybe Json.float) Nothing
+        |> optional "delta" (Json.maybe Json.float) Nothing
+        |> optional "deltaPercent" (Json.maybe Json.float) Nothing
+        |> optional "purchasedQuantity" (Json.maybe Json.float) Nothing
+        |> optional "purchasePrice" (Json.maybe Json.float) Nothing
+        |> optional "purchasedValue" (Json.maybe Json.float) Nothing
+        |> optional "currentValue" (Json.maybe Json.float) Nothing
 
 
 decodeStockList : Json.Decoder StockList
@@ -298,6 +307,10 @@ stockEntryRow entry =
         , stockEntryBox (stringFromMaybeFloat entry.average "-")
         , stockEntryBox (stringFromMaybeFloat entry.delta "-")
         , stockEntryBox (stringFromMaybeFloat entry.deltaPercent "-")
+        , stockEntryBox (stringFromMaybeFloat entry.purchasedQuantity "-")
+        , stockEntryBox (stringFromMaybeFloat entry.purchasePrice "-")
+        , stockEntryBox (stringFromMaybeFloat entry.purchasedValue "-")
+        , stockEntryBox (stringFromMaybeFloat entry.currentValue "-")
         , removeSymbolButton entry.symbol
         ]
 
@@ -383,6 +396,10 @@ stockTableHeader stockData =
         , th [] [ text "Average" ]
         , th [] [ text "Delta" ]
         , th [] [ text "Delta Percent" ]
+        , th [] [ text "Purchased Quantity" ]
+        , th [] [ text "Purchase Price" ]
+        , th [] [ text "Purchased Value" ]
+        , th [] [ text "Current Value" ]
         , th [] [ text "Actions" ]
         ]
 
